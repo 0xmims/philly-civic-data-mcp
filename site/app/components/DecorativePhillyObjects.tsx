@@ -2,17 +2,17 @@ const props = [
   {
     src: "/assets/philly-props/septa-key-card.png",
     className:
-      "right-[5%] top-[20%] hidden w-[18rem] rotate-[10deg] opacity-[0.16] blur-[0.2px] lg:block xl:right-[8%]",
+      "right-[-1.5rem] top-[16%] hidden w-[13rem] rotate-[9deg] opacity-[0.36] blur-[0.1px] md:block lg:right-[5%] lg:w-[17rem] xl:right-[8%]",
   },
   {
     src: "/assets/philly-props/love-keychain.png",
     className:
-      "left-[-2rem] top-[43%] hidden w-[15rem] rotate-[-14deg] opacity-[0.18] blur-[0.15px] lg:block xl:left-[4%]",
+      "left-[-4rem] top-[47%] hidden w-[12rem] rotate-[-13deg] opacity-[0.34] blur-[0.1px] md:block lg:left-[-2rem] lg:top-[55%] lg:w-[15rem] xl:left-[3%]",
   },
   {
     src: "/assets/philly-props/pennsylvania-flag.svg",
     className:
-      "right-[-4rem] bottom-[8%] hidden w-[18rem] rotate-[13deg] opacity-[0.12] blur-[0.25px] lg:block xl:right-[10%]",
+      "right-[-5rem] bottom-[7%] hidden w-[15rem] rotate-[13deg] opacity-[0.3] blur-[0.15px] md:block lg:w-[18rem] xl:right-[10%]",
   },
 ];
 
@@ -28,7 +28,7 @@ export function DecorativePhillyObjects() {
           src={prop.src}
           alt=""
           draggable={false}
-          className={`philly-prop absolute max-w-none rounded-xl object-contain shadow-luxe ${prop.className}`}
+          className={`philly-prop absolute max-w-none object-contain ${prop.className}`}
         />
       ))}
     </div>

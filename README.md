@@ -58,17 +58,33 @@ The verification script prints a JSON summary to stderr.
 
 ## Website
 
-The docs/landing website lives in `site/`.
+The docs/landing website lives in `site/`. It is a Next.js app for explaining Philadelphia Data MCP, helping developers understand the available tools, and giving the project a polished public face on GitHub.
+
+Current pages:
+
+- `/` is the landing page with the MCP overview, dataset highlights, tool examples, and access CTA.
+- `/docs` is the documentation page with the MCP explanation, dataset coverage, setup guidance, and example requests.
+
+Run the website locally:
 
 ```bash
 cd site
 npm install
 npm run dev
+```
+
+Then open `http://127.0.0.1:3000`.
+
+Validate the website:
+
+```bash
 npm run typecheck
 npm run build
 ```
 
-The website should describe and promote the MCP server. Keep it aligned with the actual registry and tools.
+Decorative Philadelphia background props are copied into `site/public/assets/philly-props/` for the running site and mirrored in `public/assets/philly-props/` at the repo root. Source code should reference them only with public-relative paths such as `/assets/philly-props/septa-key-card.png`.
+
+The website should describe and promote the MCP server. Keep it aligned with the actual registry and tools, and keep decorative civic/transit imagery subtle so it does not imply an official endorsement.
 
 ## MCP Client Configuration
 
