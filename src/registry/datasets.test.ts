@@ -17,6 +17,17 @@ describe("dataset registry", () => {
     ).toBe(true);
   });
 
+  it("declares provider capabilities for every dataset", () => {
+    expect(
+      datasets.every(
+        (dataset) =>
+          dataset.capabilities.supportsSchema &&
+          dataset.capabilities.supportsQuery &&
+          dataset.capabilities.maxRecommendedLimit > 0
+      )
+    ).toBe(true);
+  });
+
   it("searches across title, tags, descriptions, and filters", () => {
     const results = searchDatasets({ keyword: "311", limit: 3 });
 

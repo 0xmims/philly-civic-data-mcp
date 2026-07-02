@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { DEFAULT_LIMIT, DEFAULT_NEARBY_LIMIT } from "../utils/limits.js";
 
+const identifierSchema = z
+  .string()
+  .regex(/^[A-Za-z_][A-Za-z0-9_]*$/, "Use a simple field identifier.");
+
 const filterPrimitiveSchema = z.union([
   z.string(),
   z.number(),
@@ -62,6 +66,35 @@ export const queryNearbySchema = z.object({
   filters: filtersSchema.default({})
 });
 
+export const aggregateDatasetSchema = z.object({
+  dataset_id: z.string(),
+  filters: filtersSchema.default({}),
+  group_by: z.array(identifierSchema).optional(),
+  metrics: z
+    .array(
+      z.union([
+        z.object({
+          op: z.literal("count"),
+          as: identifierSchema.optional()
+        }),
+        z.object({
+          op: z.literal("count_distinct"),
+          field: identifierSchema,
+          as: identifierSchema.optional()
+        })
+      ])
+    )
+    .default([{ op: "count" }]),
+  date_bucket: z
+    .object({
+      field: identifierSchema,
+      interval: z.enum(["day", "week", "month", "year"])
+    })
+    .optional(),
+  limit: z.number().int().positive().default(DEFAULT_LIMIT),
+  order_by: z.string().optional()
+});
+
 export const getBoundaryShape = {
   boundary_type: z.string(),
   name: z.string().optional(),
@@ -74,6 +107,33 @@ export const getBoundarySchema = z
     message: "Provide name or id."
   });
 
+export const queryWithinBoundaryShape = {
+  dataset_id: z.string(),
+  boundary_type: z.enum([
+    "neighborhood",
+    "council_district",
+    "zip",
+    "police_district"
+  ]),
+  boundary_name: z.string().optional(),
+  boundary_id: z.union([z.string(), z.number()]).optional(),
+  filters: filtersSchema.default({}),
+  fields: z.array(identifierSchema).optional(),
+  limit: z.number().int().positive().default(DEFAULT_LIMIT),
+  offset: z.number().int().min(0).default(0),
+  order_by: z.string().optional()
+};
+
+export const queryWithinBoundarySchema = z
+  .object(queryWithinBoundaryShape)
+  .refine(
+    (value) =>
+      value.boundary_name !== undefined || value.boundary_id !== undefined,
+    {
+      message: "Provide boundary_name or boundary_id."
+    }
+  );
+
 export const civicQuestionHelperSchema = z.object({
   question: z.string().min(3)
 });
@@ -82,5 +142,7 @@ export type SearchDatasetsInput = z.infer<typeof searchDatasetsSchema>;
 export type GetDatasetSchemaInput = z.infer<typeof getDatasetSchemaSchema>;
 export type QueryDatasetInput = z.infer<typeof queryDatasetSchema>;
 export type QueryNearbyInput = z.infer<typeof queryNearbySchema>;
+export type AggregateDatasetInput = z.infer<typeof aggregateDatasetSchema>;
 export type GetBoundaryInput = z.infer<typeof getBoundarySchema>;
+export type QueryWithinBoundaryInput = z.infer<typeof queryWithinBoundarySchema>;
 export type CivicQuestionHelperInput = z.infer<typeof civicQuestionHelperSchema>;

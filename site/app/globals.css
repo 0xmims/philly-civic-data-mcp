@@ -85,6 +85,19 @@ body {
   animation-delay: -3.2s;
 }
 
+.philly-prop {
+  animation: prop-float 12s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.philly-prop:nth-child(2n) {
+  animation-delay: -4s;
+}
+
+.philly-prop:nth-child(3n) {
+  animation-delay: -7s;
+}
+
 .code-panel {
   background-image:
     radial-gradient(circle at 18% 5%, rgba(242, 210, 138, 0.16), transparent 18rem),
@@ -108,6 +121,17 @@ body {
   }
 }
 
+@keyframes prop-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -12px;
+  }
+}
+
 @media (max-width: 700px) {
   .hero-object {
     height: 390px;
@@ -115,6 +139,10 @@ body {
 
   .connector {
     opacity: 0.46;
+  }
+
+  .decorative-philly-objects {
+    opacity: 0.52;
   }
 }
 
@@ -124,7 +152,8 @@ body {
   }
 
   .connector,
-  .data-chip {
+  .data-chip,
+  .philly-prop {
     animation: none;
   }
 }

@@ -23,6 +23,7 @@ export function registerResources(server: McpServer): void {
                 description: dataset.description,
                 categories: dataset.categories,
                 provider: dataset.provider.kind,
+                capabilities: dataset.capabilities,
                 source: dataset.source,
                 formats: dataset.formats,
                 update_frequency: dataset.updateFrequency,

@@ -71,6 +71,70 @@ export function pointFromRecord(record: Record<string, unknown>): Point | undefi
   return { latitude, longitude };
 }
 
+export function isPolygonLikeGeometry(geometry: unknown): boolean {
+  if (!geometry || typeof geometry !== "object") {
+    return false;
+  }
+
+  const value = geometry as Record<string, unknown>;
+  return (
+    value.type === "Polygon" ||
+    value.type === "MultiPolygon" ||
+    Array.isArray(value.rings)
+  );
+}
+
+export function pointInGeometry(point: Point, geometry: unknown): boolean {
+  const polygons = polygonRingsFromGeometry(geometry);
+  const coordinate: [number, number] = [point.longitude, point.latitude];
+
+  return polygons.some((rings) => {
+    const [outer, ...holes] = rings;
+    if (!outer || !pointInRing(coordinate, outer)) {
+      return false;
+    }
+
+    return !holes.some((hole) => pointInRing(coordinate, hole));
+  });
+}
+
+export function toEsriPolygonGeometry(
+  geometry: unknown
+): { rings: [number, number][][] } | undefined {
+  const polygons = polygonRingsFromGeometry(geometry);
+  if (polygons.length === 0) {
+    return undefined;
+  }
+
+  return {
+    rings: polygons.flat()
+  };
+}
+
+export function polygonRingsFromGeometry(
+  geometry: unknown
+): [number, number][][][] {
+  if (!geometry || typeof geometry !== "object") {
+    return [];
+  }
+
+  const value = geometry as Record<string, unknown>;
+
+  if (Array.isArray(value.rings)) {
+    return [normalizeRings(value.rings)];
+  }
+
+  if (value.type === "Polygon" && Array.isArray(value.coordinates)) {
+    return [normalizeRings(value.coordinates)];
+  }
+
+  if (value.type === "MultiPolygon" && Array.isArray(value.coordinates)) {
+    return value.coordinates.map((polygon) => normalizeRings(polygon));
+  }
+
+  return [];
+}
+
 function firstNumber(
   record: Record<string, unknown>,
   keys: string[]
@@ -109,4 +173,50 @@ function collectCoordinatePairs(value: unknown): [number, number][] {
 
 function toRadians(value: number): number {
   return (value * Math.PI) / 180;
+}
+
+function normalizeRings(value: unknown): [number, number][][] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((ring) => normalizeRing(ring))
+    .filter((ring) => ring.length >= 4);
+}
+
+function normalizeRing(value: unknown): [number, number][] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter(isCoordinatePair);
+}
+
+function isCoordinatePair(value: unknown): value is [number, number] {
+  return (
+    Array.isArray(value) &&
+    value.length >= 2 &&
+    typeof value[0] === "number" &&
+    typeof value[1] === "number"
+  );
+}
+
+function pointInRing(point: [number, number], ring: [number, number][]): boolean {
+  const [x, y] = point;
+  let inside = false;
+
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    const intersects =
+      yi > y !== yj > y &&
+      x < ((xj - xi) * (y - yi)) / (yj - yi || Number.EPSILON) + xi;
+
+    if (intersects) {
+      inside = !inside;
+    }
+  }
+
+  return inside;
 }

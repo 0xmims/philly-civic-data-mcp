@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filtersToSql } from "./carto.js";
+import { buildCartoAggregateSql, filtersToSql } from "./carto.js";
 
 describe("CARTO provider SQL filters", () => {
   it("builds safe SQL for supported filter forms", () => {
@@ -26,5 +26,29 @@ describe("CARTO provider SQL filters", () => {
     expect(() => filtersToSql({ "status;drop": "Open" })).toThrow(
       /Invalid field/
     );
+  });
+
+  it("builds safe aggregate SQL", () => {
+    const sql = buildCartoAggregateSql(
+      {
+        kind: "carto",
+        baseUrl: "https://example.test/sql",
+        table: "public_cases_fc",
+        geometryColumn: "the_geom"
+      },
+      {
+        filters: { requested_datetime: { gte: "2026-01-01" } },
+        groupBy: ["service_name"],
+        metrics: [{ op: "count", as: "case_count" }],
+        dateBucket: { field: "requested_datetime", interval: "month" },
+        limit: 10,
+        orderBy: "case_count desc"
+      }
+    );
+
+    expect(sql).toContain("date_trunc('month', requested_datetime) AS date_bucket");
+    expect(sql).toContain("COUNT(*) AS case_count");
+    expect(sql).toContain("GROUP BY service_name, date_trunc('month', requested_datetime)");
+    expect(sql).toContain("ORDER BY case_count DESC");
   });
 });

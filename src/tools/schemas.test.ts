@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { clampLimit, clampRadius, MAX_LIMIT, MAX_RADIUS_METERS } from "../utils/limits.js";
-import { queryDatasetSchema, queryNearbySchema } from "./schemas.js";
+import {
+  aggregateDatasetSchema,
+  queryDatasetSchema,
+  queryNearbySchema,
+  queryWithinBoundarySchema
+} from "./schemas.js";
 
 describe("tool validation", () => {
   it("accepts primitive and operator filters", () => {
@@ -35,5 +40,37 @@ describe("tool validation", () => {
     expect(limit.warnings[0]).toContain("reduced");
     expect(radius.radiusMeters).toBe(MAX_RADIUS_METERS);
     expect(radius.warnings[0]).toContain("reduced");
+  });
+
+  it("validates aggregate_dataset identifiers and defaults", () => {
+    const parsed = aggregateDatasetSchema.parse({
+      dataset_id: "311_service_requests",
+      group_by: ["service_name"],
+      metrics: [{ op: "count_distinct", field: "zipcode", as: "zip_count" }]
+    });
+
+    expect(parsed.metrics[0].op).toBe("count_distinct");
+    expect(() =>
+      aggregateDatasetSchema.parse({
+        dataset_id: "311_service_requests",
+        group_by: ["service_name;drop"]
+      })
+    ).toThrow();
+  });
+
+  it("requires a boundary identifier for query_within_boundary", () => {
+    expect(() =>
+      queryWithinBoundarySchema.parse({
+        dataset_id: "building_permits",
+        boundary_type: "zip"
+      })
+    ).toThrow();
+
+    const parsed = queryWithinBoundarySchema.parse({
+      dataset_id: "building_permits",
+      boundary_type: "zip",
+      boundary_id: "19120"
+    });
+    expect(parsed.limit).toBe(25);
   });
 });

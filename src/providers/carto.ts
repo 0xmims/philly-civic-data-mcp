@@ -1,4 +1,6 @@
 import type {
+  AggregateOptions,
+  AggregateResult,
   CartoProviderConfig,
   DatasetDefinition,
   DatasetSchemaResult,
@@ -8,10 +10,13 @@ import type {
   NearbyQueryOptions,
   NormalizedQueryResult,
   Provider,
+  QueryWithinBoundaryOptions,
+  QueryWithinBoundaryResult,
   QueryFilters,
   QueryOptions
 } from "../types.js";
 import { CivicDataError } from "../utils/errors.js";
+import { isPolygonLikeGeometry } from "../utils/geo.js";
 import { fetchJson } from "../utils/http.js";
 
 interface CartoSqlResponse {
@@ -135,6 +140,98 @@ export class CartoProvider implements Provider {
     };
   }
 
+  async aggregate(
+    dataset: DatasetDefinition,
+    options: AggregateOptions
+  ): Promise<AggregateResult> {
+    const config = assertCartoConfig(dataset);
+    const sql = buildCartoAggregateSql(config, options);
+    const response = await this.execute(config, sql);
+
+    return {
+      dataset_id: dataset.id,
+      source: dataset.source,
+      rows: response.rows ?? [],
+      query: {
+        filters: options.filters ?? {},
+        group_by: options.groupBy ?? [],
+        metrics: options.metrics,
+        date_bucket: options.dateBucket,
+        limit: options.limit,
+        order_by: options.orderBy
+      },
+      warnings: [
+        ...(dataset.warnings ?? []),
+        "Aggregation was computed by the CARTO SQL API with validated identifiers and safe limits."
+      ],
+      retrieved_at: new Date().toISOString()
+    };
+  }
+
+  async queryWithinBoundary(
+    dataset: DatasetDefinition,
+    options: QueryWithinBoundaryOptions
+  ): Promise<QueryWithinBoundaryResult> {
+    const config = assertCartoConfig(dataset);
+    const geometryColumn = config.geometryColumn ?? "the_geom";
+
+    if (!isPolygonLikeGeometry(options.boundary.geometry)) {
+      throw new CivicDataError(
+        "CARTO boundary queries require a polygon or multipolygon boundary geometry.",
+        "unsupported_boundary_geometry"
+      );
+    }
+
+    const fields = projection(options.fields, geometryColumn);
+    const where = [
+      `${identifier(geometryColumn)} IS NOT NULL`,
+      `ST_Intersects(${identifier(geometryColumn)}, boundary.geom)`,
+      filtersToSql(options.filters)
+    ]
+      .filter(Boolean)
+      .join(" AND ");
+    const order = options.orderBy ?? dataset.defaultOrderBy;
+
+    const sql = [
+      `WITH boundary AS (SELECT ST_SetSRID(ST_GeomFromGeoJSON(${literal(JSON.stringify(options.boundary.geometry))}), 4326) AS geom)`,
+      `SELECT ${fields.join(", ")} FROM ${identifier(config.table)}, boundary`,
+      `WHERE ${where}`,
+      order ? `ORDER BY ${orderBy(order)}` : "",
+      `LIMIT ${options.limit}`,
+      options.offset ? `OFFSET ${options.offset}` : ""
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const response = await this.execute(config, sql);
+    const normalized = normalizeRows(response.rows ?? []);
+
+    return {
+      dataset_id: dataset.id,
+      boundary: options.boundary,
+      source: dataset.source,
+      records: normalized.records,
+      geometry: normalized.geometry,
+      fields: fieldsFromCarto(response.fields),
+      query: {
+        filters: options.filters ?? {},
+        fields: options.fields ?? ["*"],
+        limit: options.limit,
+        offset: options.offset ?? 0,
+        order_by: order,
+        boundary_type: options.boundary.boundary_type,
+        boundary_dataset_id: options.boundary.dataset_id,
+        boundary_matched_by: options.boundary.matched_by
+      },
+      warnings: [
+        ...(dataset.warnings ?? []),
+        ...normalized.warnings,
+        "Boundary filtering was computed with CARTO/PostGIS ST_Intersects."
+      ],
+      retrieved_at: new Date().toISOString()
+    };
+  }
+
   private async execute(
     config: CartoProviderConfig,
     sql: string
@@ -153,6 +250,44 @@ export class CartoProvider implements Provider {
 
     return response;
   }
+}
+
+export function buildCartoAggregateSql(
+  config: CartoProviderConfig,
+  options: AggregateOptions
+): string {
+  const selected: string[] = [];
+  const groupExpressions: string[] = [];
+
+  for (const field of options.groupBy ?? []) {
+    const safeField = identifier(field);
+    selected.push(safeField);
+    groupExpressions.push(safeField);
+  }
+
+  if (options.dateBucket) {
+    const safeField = identifier(options.dateBucket.field);
+    const bucketExpression = `date_trunc('${options.dateBucket.interval}', ${safeField})`;
+    selected.push(`${bucketExpression} AS date_bucket`);
+    groupExpressions.push(bucketExpression);
+  }
+
+  for (const metric of options.metrics) {
+    selected.push(metricToSql(metric));
+  }
+
+  const where = filtersToSql(options.filters);
+  const sql = [
+    `SELECT ${selected.join(", ")} FROM ${identifier(config.table)}`,
+    where ? `WHERE ${where}` : "",
+    groupExpressions.length ? `GROUP BY ${groupExpressions.join(", ")}` : "",
+    options.orderBy ? `ORDER BY ${orderBy(options.orderBy)}` : "",
+    `LIMIT ${options.limit}`
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return sql;
 }
 
 export function filtersToSql(filters?: QueryFilters): string {
@@ -229,7 +364,7 @@ function isOperatorCondition(
 }
 
 function projection(fields: string[] | undefined, geometryColumn: string): string[] {
-  const selected = fields?.length ? fields.map(identifier) : ["*"];
+  const selected = fields?.length && !fields.includes("*") ? fields.map(identifier) : ["*"];
 
   return [
     ...selected,
@@ -248,6 +383,17 @@ function orderBy(value: string): string {
   }
 
   return `${identifier(match[1])}${match[2] ? ` ${match[2].toUpperCase()}` : ""}`;
+}
+
+function metricToSql(metric: AggregateOptions["metrics"][number]): string {
+  if (metric.op === "count") {
+    return `COUNT(*) AS ${identifier(metric.as ?? "count")}`;
+  }
+
+  const safeField = identifier(metric.field);
+  return `COUNT(DISTINCT ${safeField}) AS ${identifier(
+    metric.as ?? `count_distinct_${metric.field}`
+  )}`;
 }
 
 function identifier(value: string): string {

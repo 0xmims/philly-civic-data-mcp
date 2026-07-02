@@ -73,19 +73,42 @@ export function buildCivicQuestionHelp(question: string) {
   }
 
   if (mentionsBoundary(normalized)) {
+    const boundaryType = boundaryTypeFromQuestion(normalized);
     calls.push({
       tool: "get_boundary",
       input: {
-        boundary_type: boundaryTypeFromQuestion(normalized),
+        boundary_type: boundaryType,
         name: "<boundary name or id>"
       }
     });
     joins.push(
-      "For boundary-scoped questions, fetch the boundary first, then query a spatial dataset nearby or with provider-specific geospatial filtering."
+      "For boundary-scoped questions, fetch the boundary first, then use query_within_boundary for providers that support polygon filtering."
     );
   }
 
-  if (mentionsNearby(normalized)) {
+  if (mentionsSchemaNeed(normalized)) {
+    calls.push({
+      tool: "get_dataset_schema",
+      input: {
+        dataset_id: suggestions[0]?.dataset_id ?? "311_service_requests"
+      }
+    });
+  }
+
+  if (mentionsAggregate(normalized)) {
+    calls.push({
+      tool: "aggregate_dataset",
+      input: {
+        dataset_id: suggestions[0]?.dataset_id ?? "311_service_requests",
+        filters: {},
+        group_by: boundaryGroupByFromQuestion(normalized),
+        metrics: [{ op: "count", as: "count" }],
+        limit: 25
+      }
+    });
+  }
+
+  if (mentionsNearby(normalized) && !mentionsBoundary(normalized)) {
     const dataset = suggestions[0]?.dataset_id ?? "311_service_requests";
     calls.push({
       tool: "query_nearby",
@@ -94,6 +117,17 @@ export function buildCivicQuestionHelp(question: string) {
         latitude: "<latitude>",
         longitude: "<longitude>",
         radius_meters: 500,
+        limit: 25
+      }
+    });
+  } else if (mentionsBoundary(normalized)) {
+    calls.push({
+      tool: "query_within_boundary",
+      input: {
+        dataset_id: suggestions[0]?.dataset_id ?? "311_service_requests",
+        boundary_type: boundaryTypeFromQuestion(normalized),
+        boundary_name: "<boundary name or id>",
+        filters: {},
         limit: 25
       }
     });
@@ -110,7 +144,7 @@ export function buildCivicQuestionHelp(question: string) {
 
   if (normalized.includes("compare") || normalized.includes("trend")) {
     caveats.push(
-      "Trend or comparison questions need explicit date filters and may require multiple query_dataset calls."
+      "Trend or comparison questions need explicit date fields, date buckets, and provider support for aggregate_dataset."
     );
   }
 
@@ -179,6 +213,45 @@ function mentionsNearby(question: string): boolean {
   return ["near", "nearby", "within", "around", "closest"].some((term) =>
     question.includes(term)
   );
+}
+
+function mentionsAggregate(question: string): boolean {
+  return [
+    "count",
+    "counts",
+    "how many",
+    "trend",
+    "trends",
+    "compare",
+    "group",
+    "by month",
+    "by year",
+    "total"
+  ].some((term) => question.includes(term));
+}
+
+function mentionsSchemaNeed(question: string): boolean {
+  return [
+    "field",
+    "fields",
+    "filter",
+    "filters",
+    "schema",
+    "column",
+    "columns",
+    "status",
+    "type"
+  ].some((term) => question.includes(term));
+}
+
+function boundaryGroupByFromQuestion(question: string): string[] | undefined {
+  if (question.includes("zip")) {
+    return ["zipcode"];
+  }
+  if (question.includes("council")) {
+    return ["council_district"];
+  }
+  return undefined;
 }
 
 function boundaryTypeFromQuestion(question: string): string {

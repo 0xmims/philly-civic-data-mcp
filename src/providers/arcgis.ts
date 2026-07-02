@@ -1,4 +1,6 @@
 import type {
+  AggregateOptions,
+  AggregateResult,
   ArcGISProviderConfig,
   DatasetDefinition,
   DatasetSchemaResult,
@@ -8,11 +10,17 @@ import type {
   NearbyQueryOptions,
   NormalizedQueryResult,
   Provider,
+  QueryWithinBoundaryOptions,
+  QueryWithinBoundaryResult,
   QueryFilters,
   QueryOptions
 } from "../types.js";
 import { CivicDataError } from "../utils/errors.js";
-import { haversineDistanceMeters, pointFromGeometry } from "../utils/geo.js";
+import {
+  haversineDistanceMeters,
+  pointFromGeometry,
+  toEsriPolygonGeometry
+} from "../utils/geo.js";
 import { fetchJson } from "../utils/http.js";
 
 interface ArcGISField {
@@ -185,6 +193,89 @@ export class ArcGISProvider implements Provider {
         )
           ? ["Some returned features did not include geometry usable for distance sorting."]
           : []),
+        ...(response.exceededTransferLimit
+          ? ["ArcGIS reports additional records beyond this limited response."]
+          : [])
+      ],
+      retrieved_at: new Date().toISOString()
+    };
+  }
+
+  async aggregate(
+    dataset: DatasetDefinition,
+    options: AggregateOptions
+  ): Promise<AggregateResult> {
+    return {
+      dataset_id: dataset.id,
+      source: dataset.source,
+      rows: [],
+      query: {
+        filters: options.filters ?? {},
+        group_by: options.groupBy ?? [],
+        metrics: options.metrics,
+        date_bucket: options.dateBucket,
+        limit: options.limit,
+        order_by: options.orderBy
+      },
+      warnings: [
+        ...(dataset.warnings ?? []),
+        "aggregate_dataset is not implemented for ArcGIS providers in v2. Use CARTO/static datasets or query records and aggregate client-side with explicit caveats."
+      ],
+      retrieved_at: new Date().toISOString()
+    };
+  }
+
+  async queryWithinBoundary(
+    dataset: DatasetDefinition,
+    options: QueryWithinBoundaryOptions
+  ): Promise<QueryWithinBoundaryResult> {
+    const config = assertArcGISConfig(dataset);
+    const esriGeometry = toEsriPolygonGeometry(options.boundary.geometry);
+
+    if (!esriGeometry) {
+      throw new CivicDataError(
+        "ArcGIS boundary queries require a polygon or multipolygon boundary geometry.",
+        "unsupported_boundary_geometry"
+      );
+    }
+
+    const response = await queryLayer(config, {
+      where: filtersToWhere(options.filters),
+      outFields: outFields(options.fields),
+      resultRecordCount: String(options.limit),
+      resultOffset: String(options.offset ?? 0),
+      orderByFields: options.orderBy ? orderBy(options.orderBy) : undefined,
+      returnGeometry: "true",
+      outSR: "4326",
+      geometry: JSON.stringify(esriGeometry),
+      geometryType: "esriGeometryPolygon",
+      inSR: "4326",
+      spatialRel: "esriSpatialRelIntersects"
+    });
+
+    const normalized = normalizeFeatures(response.features ?? []);
+
+    return {
+      dataset_id: dataset.id,
+      boundary: options.boundary,
+      source: dataset.source,
+      records: normalized.records,
+      geometry: normalized.geometry,
+      fields: fieldsFromArcGIS(response.fields),
+      query: {
+        filters: options.filters ?? {},
+        fields: options.fields ?? ["*"],
+        limit: options.limit,
+        offset: options.offset ?? 0,
+        order_by: options.orderBy,
+        boundary_type: options.boundary.boundary_type,
+        boundary_dataset_id: options.boundary.dataset_id,
+        boundary_matched_by: options.boundary.matched_by
+      },
+      warnings: [
+        ...(dataset.warnings ?? []),
+        ...normalized.warnings,
+        "Boundary filtering was computed with an ArcGIS polygon spatial query.",
         ...(response.exceededTransferLimit
           ? ["ArcGIS reports additional records beyond this limited response."]
           : [])

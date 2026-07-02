@@ -10,9 +10,9 @@
 
 ## Query Capabilities
 
-- Add polygon intersection support for boundary-scoped questions.
+- Improve polygon intersection support for static GeoJSON beyond centroid fallback.
 - Add provider-aware date filter helpers for ArcGIS date fields.
-- Add optional aggregation/count tools for common civic questions.
+- Add ArcGIS statistics/groupBy support where layer metadata supports it safely.
 - Add field allowlists or suggested field bundles for sensitive/high-volume datasets.
 - Add pagination guidance in tool responses when more records are available.
 
@@ -20,11 +20,12 @@
 
 - Add integration tests behind an opt-in environment flag for live CARTO and ArcGIS endpoints.
 - Add upstream rate-limit detection with retry-after support.
-- Add lightweight in-memory schema caching with a short TTL.
-- Add clearer warnings when static GeoJSON distance uses polygon centroids.
+- Add scheduled registry verification as a separate, non-required GitHub Action.
+- Add cache metrics or debug-only cache inspection without logging to stdout in MCP mode.
 
 ## Documentation
 
 - Add more example prompts by use case: resident services, property due diligence, district analysis, and neighborhood lookup.
 - Document each registry entry's best filters and fields.
 - Add examples for common joins, such as property assessment plus permits by `opa_account_num` or parcel identifier.
+- Add website deployment notes once hosting is chosen.

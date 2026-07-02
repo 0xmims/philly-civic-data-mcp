@@ -1,8 +1,45 @@
-import type { BoundaryType, DatasetDefinition } from "../types.js";
+import type {
+  BoundaryType,
+  DatasetDefinition,
+  ProviderCapabilities
+} from "../types.js";
 
 const CARTO_BASE_URL = "https://phl.carto.com/api/v2/sql";
 const ARCGIS_ROOT =
   "https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services";
+
+const CARTO_CAPABILITIES: ProviderCapabilities = {
+  supportsSchema: true,
+  supportsQuery: true,
+  supportsNearby: true,
+  supportsGeoQuery: true,
+  supportsAggregation: true,
+  supportsBoundaryQuery: true,
+  geometryFormat: "wkb",
+  maxRecommendedLimit: 100
+};
+
+const ARCGIS_CAPABILITIES: ProviderCapabilities = {
+  supportsSchema: true,
+  supportsQuery: true,
+  supportsNearby: true,
+  supportsGeoQuery: true,
+  supportsAggregation: false,
+  supportsBoundaryQuery: true,
+  geometryFormat: "esri_json",
+  maxRecommendedLimit: 100
+};
+
+const STATIC_GEOJSON_CAPABILITIES: ProviderCapabilities = {
+  supportsSchema: true,
+  supportsQuery: true,
+  supportsNearby: true,
+  supportsGeoQuery: false,
+  supportsAggregation: true,
+  supportsBoundaryQuery: true,
+  geometryFormat: "geojson",
+  maxRecommendedLimit: 100
+};
 
 export const datasets: DatasetDefinition[] = [
   {
@@ -23,6 +60,7 @@ export const datasets: DatasetDefinition[] = [
       url: "https://opendataphilly.org/datasets/311-service-and-information-requests/",
       attribution: "City of Philadelphia, Philly311"
     },
+    capabilities: CARTO_CAPABILITIES,
     formats: ["CSV", "SHP", "CARTO SQL API"],
     updateFrequency: "Daily, per OpenDataPhilly catalog",
     endpointStatus: "verified",
@@ -60,6 +98,7 @@ export const datasets: DatasetDefinition[] = [
       url: "https://opendataphilly.org/datasets/philadelphia-properties-and-assessment-history/",
       attribution: "City of Philadelphia, Office of Property Assessment"
     },
+    capabilities: CARTO_CAPABILITIES,
     formats: ["CSV", "GeoJSON", "File Geodatabase", "CARTO SQL API"],
     updateFrequency: "Nightly, per OpenDataPhilly catalog",
     endpointStatus: "verified",
@@ -95,6 +134,7 @@ export const datasets: DatasetDefinition[] = [
       url: "https://opendataphilly.org/datasets/licenses-and-inspections-building-and-zoning-permits/",
       attribution: "City of Philadelphia, Department of Licenses and Inspections"
     },
+    capabilities: CARTO_CAPABILITIES,
     formats: ["CSV", "SHP", "GeoJSON", "CARTO SQL API"],
     updateFrequency: "Daily, per OpenDataPhilly catalog",
     endpointStatus: "verified",
@@ -132,6 +172,7 @@ export const datasets: DatasetDefinition[] = [
       url: "https://opendataphilly.org/datasets/licenses-and-inspections-code-violations/",
       attribution: "City of Philadelphia, Department of Licenses and Inspections"
     },
+    capabilities: CARTO_CAPABILITIES,
     formats: ["CSV", "SHP", "CARTO SQL API"],
     updateFrequency: "Daily, per OpenDataPhilly catalog",
     endpointStatus: "verified",
@@ -175,6 +216,7 @@ export const datasets: DatasetDefinition[] = [
       url: "https://opendataphilly.org/datasets/building-demolitions/",
       attribution: "City of Philadelphia, Department of Licenses and Inspections"
     },
+    capabilities: CARTO_CAPABILITIES,
     formats: ["CSV", "SHP", "GeoJSON", "CARTO SQL API"],
     updateFrequency: "Daily, per OpenDataPhilly catalog",
     endpointStatus: "verified",
@@ -207,6 +249,7 @@ export const datasets: DatasetDefinition[] = [
       url: "https://opendataphilly.org/datasets/vacant-property-indicators/",
       attribution: "City of Philadelphia"
     },
+    capabilities: ARCGIS_CAPABILITIES,
     formats: ["CSV", "SHP", "GeoJSON", "ArcGIS FeatureServer"],
     endpointStatus: "verified",
     knownFilters: [
@@ -238,6 +281,7 @@ export const datasets: DatasetDefinition[] = [
       url: "https://opendataphilly.org/datasets/philadelphia-neighborhoods/",
       attribution: "OpenDataPhilly and Robert Cheetham"
     },
+    capabilities: STATIC_GEOJSON_CAPABILITIES,
     formats: ["GeoJSON", "SHP", "GeoPackage", "GeoParquet"],
     updateFrequency: "As cataloged: 1997-2024 source period, metadata modified 2026-05-09",
     endpointStatus: "verified",
@@ -263,6 +307,7 @@ export const datasets: DatasetDefinition[] = [
       url: "https://opendataphilly.org/datasets/city-council-districts/",
       attribution: "City of Philadelphia"
     },
+    capabilities: ARCGIS_CAPABILITIES,
     formats: ["CSV", "SHP", "GeoJSON", "ArcGIS FeatureServer"],
     updateFrequency: "As needed, per OpenDataPhilly catalog",
     endpointStatus: "verified",
@@ -289,6 +334,7 @@ export const datasets: DatasetDefinition[] = [
       url: "https://opendataphilly.org/datasets/zip-codes/",
       attribution: "City of Philadelphia"
     },
+    capabilities: ARCGIS_CAPABILITIES,
     formats: ["CSV", "SHP", "GeoJSON", "ArcGIS FeatureServer"],
     endpointStatus: "verified",
     knownFilters: ["code", "cod"],
@@ -314,6 +360,7 @@ export const datasets: DatasetDefinition[] = [
       url: "https://opendataphilly.org/datasets/police-districts/",
       attribution: "City of Philadelphia, Philadelphia Police Department"
     },
+    capabilities: ARCGIS_CAPABILITIES,
     formats: ["CSV", "SHP", "GeoJSON", "ArcGIS FeatureServer"],
     endpointStatus: "verified",
     knownFilters: ["dist_numc"],
@@ -394,6 +441,7 @@ export function searchDatasets(options: {
       categories: dataset.categories,
       source: dataset.source,
       provider: dataset.provider.kind,
+      capabilities: dataset.capabilities,
       available_formats: dataset.formats,
       update_frequency: dataset.updateFrequency,
       endpoint_status: dataset.endpointStatus,
