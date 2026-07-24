@@ -7,10 +7,12 @@ import { buildCivicQuestionHelp } from "./civicQuestionHelper.js";
 import { errorToolResult, jsonToolResult } from "./result.js";
 import { resolveDataset } from "./resolve.js";
 import { schemaCache } from "./schemaCache.js";
+import { geocodeAddress } from "./geocode.js";
 import { getIsochrone } from "./isochrone.js";
 import {
   aggregateDatasetSchema,
   civicQuestionHelperSchema,
+  geocodeAddressSchema,
   getBoundaryShape,
   getBoundarySchema,
   getDatasetSchemaShape,
@@ -186,7 +188,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Query Within Boundary",
       description:
-        "Query records from a supported spatial dataset inside a Philadelphia neighborhood, council district, ZIP, or police district boundary.",
+        "Query records from a supported spatial dataset inside a Philadelphia neighborhood, council district, ZIP, police district, or census tract boundary.",
       inputSchema: queryWithinBoundaryShape,
       annotations: {
         readOnlyHint: true,
@@ -280,6 +282,25 @@ export function registerTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "geocode_address",
+    {
+      title: "Geocode Address",
+      description:
+        "Geocode a Philadelphia street address to latitude/longitude with the keyless U.S. Census Bureau geocoder, for use with get_isochrone and query_nearby.",
+      inputSchema: geocodeAddressSchema.shape,
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: true
+      }
+    },
+    async (args) =>
+      guarded(async () => {
+        const input = geocodeAddressSchema.parse(args);
+        return geocodeAddress(input);
+      })
+  );
+
+  server.registerTool(
     "get_isochrone",
     {
       title: "Get Isochrone",
@@ -303,7 +324,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Get Civic Boundary",
       description:
-        "Fetch a Philadelphia neighborhood, council district, ZIP, or police district boundary by name or id.",
+        "Fetch a Philadelphia neighborhood, council district, ZIP, police district, or census tract boundary by name or id.",
       inputSchema: getBoundaryShape,
       annotations: {
         readOnlyHint: true,

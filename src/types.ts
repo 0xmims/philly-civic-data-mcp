@@ -14,7 +14,8 @@ export type BoundaryType =
   | "neighborhood"
   | "council_district"
   | "zip"
-  | "police_district";
+  | "police_district"
+  | "census_tract";
 
 export type FilterPrimitive = string | number | boolean | null;
 

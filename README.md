@@ -17,6 +17,7 @@ The server can:
 - Fetch common civic boundaries.
 - Aggregate supported datasets by count, count distinct, group fields, and date buckets.
 - Query supported spatial datasets inside a known civic boundary.
+- Geocode Philadelphia street addresses with the keyless U.S. Census Bureau geocoder.
 - Compute travel-time isochrones (walk, bike, drive) from OpenStreetMap-based routing engines.
 - Query supported spatial datasets inside an arbitrary GeoJSON polygon, such as an isochrone.
 - Suggest datasets, joins, caveats, and follow-up tool calls for natural-language civic questions.
@@ -201,6 +202,7 @@ Supported boundary types:
 - `council_district`
 - `zip`
 - `police_district`
+- `census_tract`
 
 ### `aggregate_dataset`
 
@@ -237,6 +239,16 @@ CARTO aggregation uses validated SQL identifiers and safe literals. Static GeoJS
 ```
 
 The tool resolves the boundary first, then uses provider-specific spatial filtering when supported. CARTO uses PostGIS `ST_Intersects`. ArcGIS uses polygon spatial queries. Static GeoJSON uses point or centroid-in-polygon fallback with a warning.
+
+### `geocode_address`
+
+```json
+{
+  "address": "2714 S 78th St"
+}
+```
+
+Geocodes a street address to latitude/longitude with the keyless U.S. Census Bureau geocoder. City and state default to Philadelphia, PA when omitted. Returns up to five matches with warnings (interpolated coordinates, out-of-Philadelphia results). Feed the coordinates to `get_isochrone` or `query_nearby`.
 
 ### `get_isochrone`
 
@@ -297,6 +309,16 @@ Returns suggested datasets, likely joins, caveats, and recommended follow-up MCP
 | `li_appeals` | CARTO | L&I appeals incl. ZBA, LIRB, and BBS decisions |
 | `real_estate_transfers` | CARTO | Recorder of Deeds transfer documents (RTT summary) |
 | `registered_historic_properties` | CARTO | Philadelphia Register of Historic Places (catalog copy last updated 2017) |
+| `zoning_base_districts` | ArcGIS | Zoning base district polygons with pending remapping bills |
+| `crime_incidents` | CARTO | PPD Part I/II crime incidents since 2006 |
+| `shooting_victims` | CARTO | Fatal and nonfatal shooting victims since 2015 |
+| `li_complaints` | CARTO | L&I code-enforcement complaints |
+| `li_case_investigations` | CARTO | L&I case investigations |
+| `unsafe_buildings` | CARTO | Buildings declared unsafe by L&I |
+| `imminently_dangerous_buildings` | CARTO | Most severe unsafe designation, pre-demolition |
+| `business_licenses` | CARTO | Business and rental licenses with unit counts |
+| `commercial_corridors` | ArcGIS | PCPC commercial corridors with survey-based vacancy metrics |
+| `census_tracts_2020` | ArcGIS | 2020 census tract boundaries (also a `census_tract` boundary type) |
 | `neighborhood_boundaries` | Static GeoJSON | Philadelphia neighborhoods |
 | `council_districts_2024` | ArcGIS | City Council districts |
 | `zip_code_boundaries` | ArcGIS | ZIP Code polygons |

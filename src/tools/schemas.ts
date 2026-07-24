@@ -113,7 +113,8 @@ export const queryWithinBoundaryShape = {
     "neighborhood",
     "council_district",
     "zip",
-    "police_district"
+    "police_district",
+    "census_tract"
   ]),
   boundary_name: z.string().optional(),
   boundary_id: z.union([z.string(), z.number()]).optional(),
@@ -162,6 +163,15 @@ export const queryWithinPolygonShape = {
 
 export const queryWithinPolygonSchema = z.object(queryWithinPolygonShape);
 
+export const geocodeAddressSchema = z.object({
+  address: z
+    .string()
+    .min(3)
+    .describe(
+      "Street address; city and state default to Philadelphia, PA when omitted."
+    )
+});
+
 export const getIsochroneSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
@@ -182,4 +192,5 @@ export type GetBoundaryInput = z.infer<typeof getBoundarySchema>;
 export type QueryWithinBoundaryInput = z.infer<typeof queryWithinBoundarySchema>;
 export type QueryWithinPolygonInput = z.infer<typeof queryWithinPolygonSchema>;
 export type GetIsochroneInput = z.infer<typeof getIsochroneSchema>;
+export type GeocodeAddressInput = z.infer<typeof geocodeAddressSchema>;
 export type CivicQuestionHelperInput = z.infer<typeof civicQuestionHelperSchema>;

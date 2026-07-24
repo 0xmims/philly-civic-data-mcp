@@ -26,7 +26,11 @@ const BOUNDARY_ALIASES: Record<string, BoundaryType> = {
   zip_code: "zip",
   police: "police_district",
   police_district: "police_district",
-  police_districts: "police_district"
+  police_districts: "police_district",
+  census_tract: "census_tract",
+  census_tracts: "census_tract",
+  census: "census_tract",
+  tract: "census_tract"
 };
 
 export async function getBoundary(input: {
@@ -53,11 +57,18 @@ export async function getBoundary(input: {
   const provider = providerFor(dataset);
 
   for (const field of lookupFields) {
-    const response = await provider.query(dataset, {
-      limit: 1,
-      filters: { [field]: lookupValue },
-      fields: ["*"]
-    });
+    let response;
+    try {
+      response = await provider.query(dataset, {
+        limit: 1,
+        filters: { [field]: lookupValue },
+        fields: ["*"]
+      });
+    } catch {
+      // A candidate lookup field can be type-incompatible with the value
+      // (e.g. a string against a numeric OBJECTID); try the next field.
+      continue;
+    }
 
     if (response.records.length > 0) {
       const rawGeometry = response.geometry?.[0];
@@ -97,7 +108,7 @@ function parseBoundaryType(value: string): BoundaryType {
 
   if (!boundaryType) {
     throw new CivicDataError(
-      `Unsupported boundary_type "${value}". Use neighborhood, council_district, ZIP, or police_district.`,
+      `Unsupported boundary_type "${value}". Use neighborhood, council_district, ZIP, police_district, or census_tract.`,
       "unsupported_boundary_type"
     );
   }

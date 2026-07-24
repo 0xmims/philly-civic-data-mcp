@@ -43,10 +43,26 @@ describe("dataset registry", () => {
       "building_certification_summary",
       "li_appeals",
       "real_estate_transfers",
-      "registered_historic_properties"
+      "registered_historic_properties",
+      "zoning_base_districts",
+      "crime_incidents",
+      "shooting_victims",
+      "li_complaints",
+      "li_case_investigations",
+      "unsafe_buildings",
+      "imminently_dangerous_buildings",
+      "business_licenses",
+      "commercial_corridors",
+      "census_tracts_2020"
     ]) {
       expect(ids.has(id)).toBe(true);
     }
+  });
+
+  it("exposes census tracts as a boundary dataset", () => {
+    const tracts = datasets.find((dataset) => dataset.id === "census_tracts_2020");
+    expect(tracts?.boundary?.type).toBe("census_tract");
+    expect(tracts?.boundary?.idFields).toContain("GEOID");
   });
 
   it("marks non-spatial CARTO tables as unsupported for spatial queries", () => {

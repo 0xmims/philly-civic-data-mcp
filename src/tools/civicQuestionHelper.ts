@@ -89,6 +89,41 @@ export function buildCivicQuestionHelp(question: string) {
     terms: ["historic", "preservation", "landmark"],
     reason: "Useful for local historic register status. Catalog copy last updated 2017; confirm with the Historical Commission."
   });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "zoning_base_districts",
+    terms: ["zoning", "zoned", "rezoning", "remapping", "land use"],
+    reason: "Useful for what a parcel or area is zoned, including pending remapping bills."
+  });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "crime_incidents",
+    terms: ["crime", "theft", "burglary", "robbery", "assault", "incident"],
+    reason: "Useful for police incident counts and locations by offense type, district, and date. Filter aggressively; 3.5M+ rows."
+  });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "shooting_victims",
+    terms: ["shooting", "shootings", "gun violence", "shot"],
+    reason: "Useful for fatal and nonfatal shooting victim locations and trends."
+  });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "li_complaints",
+    terms: ["complaint", "complaints"],
+    reason: "Useful for L&I code-enforcement complaints; join to investigations or violations for outcomes."
+  });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "unsafe_buildings",
+    terms: ["unsafe", "dangerous building", "collapse"],
+    reason: "Useful for buildings declared unsafe or imminently dangerous by L&I."
+  });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "business_licenses",
+    terms: ["license", "rental", "landlord", "airbnb", "business"],
+    reason: "Useful for business and rental license status, categories, and unit counts."
+  });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "commercial_corridors",
+    terms: ["corridor", "retail", "storefront", "vacancy rate"],
+    reason: "Useful for commercial corridor boundaries and survey-based vacancy and condition metrics."
+  });
 
   if (suggestions.length === 0) {
     suggestions.push(
@@ -255,8 +290,8 @@ function keywordFromQuestion(question: string): string {
 }
 
 function mentionsBoundary(question: string): boolean {
-  return ["neighborhood", "council", "district", "zip", "police"].some((term) =>
-    question.includes(term)
+  return ["neighborhood", "council", "district", "zip", "police", "tract"].some(
+    (term) => question.includes(term)
   );
 }
 
@@ -331,6 +366,9 @@ function boundaryTypeFromQuestion(question: string): string {
   }
   if (question.includes("police")) {
     return "police_district";
+  }
+  if (question.includes("tract")) {
+    return "census_tract";
   }
   return "zip";
 }

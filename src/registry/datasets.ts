@@ -436,6 +436,346 @@ export const datasets: DatasetDefinition[] = [
     ]
   },
   {
+    id: "zoning_base_districts",
+    title: "Zoning Base Districts",
+    description:
+      "Base zoning district polygons for every parcel in Philadelphia, including pending remapping bills and sunset dates.",
+    categories: ["Planning / Zoning", "Real Estate / Land Records"],
+    tags: ["zoning", "districts", "land use", "remapping"],
+    provider: {
+      kind: "arcgis",
+      layerUrl: `${ARCGIS_ROOT}/Zoning_BaseDistricts/FeatureServer/0`
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/zoning-base-districts/",
+      attribution: "City of Philadelphia, Philadelphia City Planning Commission"
+    },
+    capabilities: ARCGIS_CAPABILITIES,
+    formats: ["CSV", "SHP", "GeoJSON", "ArcGIS FeatureServer"],
+    endpointStatus: "verified",
+    knownFilters: ["code", "long_code", "zoninggroup", "pending", "pendingbill"],
+    warnings: [
+      "Base districts only — zoning overlays are a separate layer and can change what is buildable.",
+      "Check the pending and pendingbill fields: active remapping bills may change a parcel's district."
+    ]
+  },
+  {
+    id: "crime_incidents",
+    title: "Crime Incidents (Part I and II)",
+    description:
+      "Philadelphia Police Department crime incidents since 2006, with UCR codes and block-level locations.",
+    categories: ["Public Safety"],
+    tags: ["crime", "police", "incidents", "UCR"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "incidents_part1_part2",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/crime-incidents/",
+      attribution: "City of Philadelphia, Philadelphia Police Department"
+    },
+    capabilities: CARTO_CAPABILITIES,
+    formats: ["CSV", "GeoJSON", "CARTO SQL API"],
+    updateFrequency: "Daily, per OpenDataPhilly catalog",
+    endpointStatus: "verified",
+    knownFilters: [
+      "dispatch_date",
+      "dispatch_date_time",
+      "dc_dist",
+      "psa",
+      "ucr_general",
+      "text_general_code",
+      "location_block",
+      "dc_key"
+    ],
+    defaultOrderBy: "dispatch_date_time desc",
+    warnings: [
+      "Very large dataset (3.5M+ incidents). Always filter by date range, district, or offense type.",
+      "Locations are generalized to the block. Incidents are reports, not adjudicated outcomes."
+    ]
+  },
+  {
+    id: "shooting_victims",
+    title: "Shooting Victims",
+    description:
+      "Citywide fatal and nonfatal shooting victims since 2015, including officer-involved shootings.",
+    categories: ["Public Safety", "Health / Human Services"],
+    tags: ["shootings", "gun violence", "victims", "police"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "shootings",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/shooting-victims/",
+      attribution: "City of Philadelphia, Philadelphia Police Department"
+    },
+    capabilities: CARTO_CAPABILITIES,
+    formats: ["CSV", "GeoJSON", "CARTO SQL API"],
+    updateFrequency: "Daily, per OpenDataPhilly catalog",
+    endpointStatus: "verified",
+    knownFilters: [
+      "year",
+      "date_",
+      "fatal",
+      "wound",
+      "officer_involved",
+      "dist",
+      "race",
+      "sex",
+      "age"
+    ],
+    defaultOrderBy: "date_ desc",
+    warnings: [
+      "Victim-level records with demographic fields. Request only the fields the civic question needs, and aggregate where possible."
+    ]
+  },
+  {
+    id: "li_complaints",
+    title: "L&I Complaints",
+    description:
+      "Complaints submitted to Licenses and Inspections about potential code violations, with investigation and resolution status.",
+    categories: ["Public Safety", "Real Estate / Land Records"],
+    tags: ["complaints", "code enforcement", "L&I"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "complaints",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/licenses-and-inspections-complaints/",
+      attribution: "City of Philadelphia, Department of Licenses and Inspections"
+    },
+    capabilities: CARTO_CAPABILITIES,
+    formats: ["CSV", "CARTO SQL API"],
+    updateFrequency: "Daily, per OpenDataPhilly catalog",
+    endpointStatus: "verified",
+    knownFilters: [
+      "complaintnumber",
+      "complaintcode",
+      "complaintcodename",
+      "complaintdate",
+      "complaintstatus",
+      "casestatus",
+      "unitresponsible",
+      "address",
+      "zip",
+      "censustract",
+      "council_district",
+      "opa_account_num"
+    ],
+    defaultOrderBy: "complaintdate desc",
+    warnings: [
+      "Very large dataset (1M+ complaints). A complaint is an allegation, not a verified violation — join to li_violations or li_case_investigations for outcomes."
+    ]
+  },
+  {
+    id: "li_case_investigations",
+    title: "L&I Case Investigations",
+    description:
+      "Investigations Licenses and Inspections performed on cases, linking complaints to violations with type, priority, and outcome.",
+    categories: ["Public Safety", "Real Estate / Land Records"],
+    tags: ["investigations", "inspections", "code enforcement", "L&I"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "case_investigations",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/licenses-and-inspections-case-investigations/",
+      attribution: "City of Philadelphia, Department of Licenses and Inspections"
+    },
+    capabilities: CARTO_CAPABILITIES,
+    formats: ["CSV", "CARTO SQL API"],
+    updateFrequency: "Daily, per OpenDataPhilly catalog",
+    endpointStatus: "verified",
+    knownFilters: [
+      "casenumber",
+      "casetype",
+      "casepriority",
+      "investigationtype",
+      "investigationstatus",
+      "investigationcompleted",
+      "address",
+      "zip",
+      "censustract",
+      "council_district",
+      "opa_account_num"
+    ],
+    defaultOrderBy: "investigationcompleted desc",
+    warnings: [
+      "Very large dataset (2M+ investigations). Filter by date, case type, or location before broad queries."
+    ]
+  },
+  {
+    id: "unsafe_buildings",
+    title: "Unsafe Buildings",
+    description:
+      "Buildings L&I has declared unsafe under the building code, with violation dates and resolution status.",
+    categories: ["Public Safety", "Real Estate / Land Records"],
+    tags: ["unsafe buildings", "code enforcement", "L&I"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "unsafe",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "City of Philadelphia CARTO API Explorer",
+      url: "https://cityofphiladelphia.github.io/carto-api-explorer/#unsafe",
+      attribution: "City of Philadelphia, Department of Licenses and Inspections"
+    },
+    capabilities: CARTO_CAPABILITIES,
+    formats: ["CSV", "CARTO SQL API"],
+    endpointStatus: "verified",
+    knownFilters: [
+      "casenumber",
+      "casecreateddate",
+      "casecompleteddate",
+      "violationnumber",
+      "violationdate",
+      "violationcodetitle",
+      "violationresolutiondate",
+      "address",
+      "zip",
+      "censustract",
+      "council_district",
+      "opa_account_num"
+    ],
+    defaultOrderBy: "violationdate desc",
+    warnings: [
+      "Includes both open and resolved unsafe designations — check violationresolutiondate and violationresolutioncode for current status.",
+      "This table has no standalone OpenDataPhilly catalog page; it is published through the city's CARTO API alongside li_violations."
+    ]
+  },
+  {
+    id: "imminently_dangerous_buildings",
+    title: "Imminently Dangerous Buildings",
+    description:
+      "Buildings L&I has declared imminently dangerous — the most severe unsafe designation, typically preceding demolition.",
+    categories: ["Public Safety", "Real Estate / Land Records"],
+    tags: ["imminently dangerous", "unsafe buildings", "demolition", "L&I"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "imm_dang",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "City of Philadelphia CARTO API Explorer",
+      url: "https://cityofphiladelphia.github.io/carto-api-explorer/#imm_dang",
+      attribution: "City of Philadelphia, Department of Licenses and Inspections"
+    },
+    capabilities: CARTO_CAPABILITIES,
+    formats: ["CSV", "CARTO SQL API"],
+    endpointStatus: "verified",
+    knownFilters: [
+      "casenumber",
+      "casecreateddate",
+      "casecompleteddate",
+      "violationnumber",
+      "violationdate",
+      "violationcodetitle",
+      "violationresolutiondate",
+      "address",
+      "zip",
+      "censustract",
+      "council_district",
+      "opa_account_num"
+    ],
+    defaultOrderBy: "violationdate desc",
+    warnings: [
+      "Small, high-stakes list. Cross-reference building_demolitions for what happened next.",
+      "This table has no standalone OpenDataPhilly catalog page; it is published through the city's CARTO API alongside li_violations."
+    ]
+  },
+  {
+    id: "business_licenses",
+    title: "L&I Business Licenses",
+    description:
+      "Business licenses issued by Licenses and Inspections, including rental licenses with unit counts and status.",
+    categories: ["Economy", "Real Estate / Land Records"],
+    tags: ["licenses", "business", "rental", "landlord", "L&I"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "business_licenses",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/licenses-and-inspections-business-licenses/",
+      attribution: "City of Philadelphia, Department of Licenses and Inspections"
+    },
+    capabilities: CARTO_CAPABILITIES,
+    formats: ["CSV", "CARTO SQL API"],
+    updateFrequency: "Daily, per OpenDataPhilly catalog",
+    endpointStatus: "verified",
+    knownFilters: [
+      "licensenum",
+      "licensetype",
+      "rentalcategory",
+      "licensestatus",
+      "initialissuedate",
+      "mostrecentissuedate",
+      "expirationdate",
+      "numberofunits",
+      "business_name",
+      "address",
+      "zip",
+      "censustract",
+      "council_district",
+      "opa_account_num"
+    ],
+    defaultOrderBy: "mostrecentissuedate desc",
+    warnings: [
+      "Owner and contact mailing fields are sensitive. Request only the fields the civic question needs.",
+      "For rental housing questions, filter licensetype = 'Rental' and use rentalcategory and numberofunits."
+    ]
+  },
+  {
+    id: "commercial_corridors",
+    title: "Commercial Corridors",
+    description:
+      "Planning Commission commercial corridor polygons with retail inventory, vacancy rates, and corridor condition metrics from periodic surveys.",
+    categories: ["Economy", "Planning / Zoning"],
+    tags: ["commercial corridors", "retail", "vacancy", "economic development"],
+    provider: {
+      kind: "arcgis",
+      layerUrl: `${ARCGIS_ROOT}/Commercial_Corridors/FeatureServer/0`
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/commercial-corridors-of-philadelphia/",
+      attribution: "City of Philadelphia, Philadelphia City Planning Commission"
+    },
+    capabilities: ARCGIS_CAPABILITIES,
+    formats: ["CSV", "SHP", "GeoJSON", "ArcGIS FeatureServer"],
+    endpointStatus: "verified",
+    knownFilters: [
+      "name",
+      "corridor_type",
+      "zip",
+      "vac_rate",
+      "gla",
+      "survey_year",
+      "stage"
+    ],
+    warnings: [
+      "Condition and vacancy metrics come from periodic PCPC surveys — check survey_year before treating them as current."
+    ]
+  },
+  {
     id: "registered_historic_properties",
     title: "Philadelphia Registered Historic Properties",
     description:
@@ -541,6 +881,35 @@ export const datasets: DatasetDefinition[] = [
       nameFields: ["code"],
       idFields: ["code", "cod", "objectid"]
     }
+  },
+  {
+    id: "census_tracts_2020",
+    title: "Census Tracts - 2020",
+    description:
+      "2020 U.S. Census tract boundaries for Philadelphia County, keyed by GEOID for demographic joins.",
+    categories: ["Boundaries"],
+    tags: ["census", "tracts", "demographics", "boundaries"],
+    provider: {
+      kind: "arcgis",
+      layerUrl: `${ARCGIS_ROOT}/Census_Tracts_2020/FeatureServer/0`
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/census-tracts/",
+      attribution: "U.S. Census Bureau via City of Philadelphia"
+    },
+    capabilities: ARCGIS_CAPABILITIES,
+    formats: ["CSV", "SHP", "GeoJSON", "ArcGIS FeatureServer"],
+    endpointStatus: "verified",
+    knownFilters: ["GEOID", "TRACTCE", "NAME", "NAMELSAD"],
+    boundary: {
+      type: "census_tract",
+      nameFields: ["NAMELSAD", "NAME"],
+      idFields: ["GEOID", "TRACTCE", "OBJECTID"]
+    },
+    warnings: [
+      "L&I datasets carry a censustract attribute that uses the short tract number, not the full GEOID."
+    ]
   },
   {
     id: "police_district_boundaries",
