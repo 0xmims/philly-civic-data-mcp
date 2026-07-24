@@ -7,6 +7,7 @@ import { buildCivicQuestionHelp } from "./civicQuestionHelper.js";
 import { errorToolResult, jsonToolResult } from "./result.js";
 import { resolveDataset } from "./resolve.js";
 import { schemaCache } from "./schemaCache.js";
+import { getIsochrone } from "./isochrone.js";
 import {
   aggregateDatasetSchema,
   civicQuestionHelperSchema,
@@ -14,12 +15,17 @@ import {
   getBoundarySchema,
   getDatasetSchemaShape,
   getDatasetSchemaSchema,
+  getIsochroneSchema,
   queryDatasetSchema,
   queryNearbySchema,
   queryWithinBoundaryShape,
   queryWithinBoundarySchema,
+  queryWithinPolygonShape,
+  queryWithinPolygonSchema,
   searchDatasetsSchema
 } from "./schemas.js";
+import { CivicDataError } from "../utils/errors.js";
+import { geometryIntersectsPhiladelphiaBbox } from "../utils/geo.js";
 
 export function registerTools(server: McpServer): void {
   server.registerTool(
@@ -217,6 +223,78 @@ export function registerTools(server: McpServer): void {
           ...result,
           warnings: [...limit.warnings, ...boundary.warnings, ...result.warnings]
         };
+      })
+  );
+
+  server.registerTool(
+    "query_within_polygon",
+    {
+      title: "Query Within Polygon",
+      description:
+        "Query records from a supported spatial dataset inside an arbitrary GeoJSON polygon, such as an isochrone from get_isochrone or a custom study area.",
+      inputSchema: queryWithinPolygonShape,
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: true
+      }
+    },
+    async (args) =>
+      guarded(async () => {
+        const input = queryWithinPolygonSchema.parse(args);
+        const dataset = resolveDataset({ dataset_id: input.dataset_id });
+
+        if (!dataset.capabilities.supportsBoundaryQuery) {
+          throw new CivicDataError(
+            `Dataset ${dataset.id} has no usable geometry, so polygon queries are unsupported. Check its warnings for join guidance.`,
+            "unsupported_polygon_query"
+          );
+        }
+
+        const limit = clampLimit(input.limit);
+        const locationWarnings = geometryIntersectsPhiladelphiaBbox(input.polygon)
+          ? []
+          : [
+              "The polygon does not intersect Philadelphia's bounding box, so results will likely be empty."
+            ];
+        const result = await providerFor(dataset).queryWithinBoundary(dataset, {
+          filters: input.filters,
+          fields: input.fields,
+          limit: limit.limit,
+          offset: input.offset,
+          orderBy: input.order_by,
+          boundary: {
+            boundary_type: "custom_polygon",
+            dataset_id: "user_supplied_polygon",
+            matched_by: "polygon",
+            record: {},
+            geometry: input.polygon,
+            geometry_format: "geojson"
+          }
+        });
+
+        return {
+          ...result,
+          warnings: [...limit.warnings, ...locationWarnings, ...result.warnings]
+        };
+      })
+  );
+
+  server.registerTool(
+    "get_isochrone",
+    {
+      title: "Get Isochrone",
+      description:
+        "Compute the area reachable from an origin point within a travel-time budget (walk, bike, or drive) as a GeoJSON polygon, for use with query_within_polygon.",
+      inputSchema: getIsochroneSchema.shape,
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: true
+      }
+    },
+    async (args) =>
+      guarded(async () => {
+        const input = getIsochroneSchema.parse(args);
+        return getIsochrone(input);
       })
   );
 

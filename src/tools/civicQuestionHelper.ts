@@ -64,11 +64,62 @@ export function buildCivicQuestionHelp(question: string) {
     terms: ["council", "district"],
     reason: "Useful for boundary lookup and district-based filtering or aggregation."
   });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "building_certifications",
+    terms: ["certification", "certifications", "fire alarm", "sprinkler", "facade", "fire escape", "standpipe"],
+    reason: "Useful for building safety certification filings, results, and expirations. No geometry; join by address or bin for mapping."
+  });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "building_certification_summary",
+    terms: ["certification status", "compliance status", "expired certification"],
+    reason: "Useful for per-structure current certification status by system."
+  });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "li_appeals",
+    terms: ["appeal", "appeals", "zba", "variance", "zoning board", "refusal"],
+    reason: "Useful for ZBA, LIRB, and BBS appeals with hearing decisions and provisos."
+  });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "real_estate_transfers",
+    terms: ["deed", "deeds", "transfer", "sale", "sold", "grantor", "grantee", "mortgage"],
+    reason: "Useful for recorded property transfers and considerations. Filter document_type and dates; the table is very large."
+  });
+  addIfMatches(suggestions, normalized, {
+    dataset_id: "registered_historic_properties",
+    terms: ["historic", "preservation", "landmark"],
+    reason: "Useful for local historic register status. Catalog copy last updated 2017; confirm with the Historical Commission."
+  });
 
   if (suggestions.length === 0) {
     suggestions.push(
       suggestionFor("311_service_requests", "Broad civic-service starting point."),
       suggestionFor("property_assessments", "Broad property and parcel starting point.")
+    );
+  }
+
+  if (mentionsReachability(normalized)) {
+    calls.push(
+      {
+        tool: "get_isochrone",
+        input: {
+          latitude: "<latitude>",
+          longitude: "<longitude>",
+          mode: normalized.includes("driv") ? "drive" : "walk",
+          minutes: 15
+        }
+      },
+      {
+        tool: "query_within_polygon",
+        input: {
+          dataset_id: suggestions[0]?.dataset_id ?? "property_assessments",
+          polygon: "<polygon geometry from get_isochrone>",
+          filters: {},
+          limit: 25
+        }
+      }
+    );
+    joins.push(
+      "For travel-time questions, compute an isochrone first, then pass its polygon to query_within_polygon on a spatial dataset."
     );
   }
 
@@ -213,6 +264,23 @@ function mentionsNearby(question: string): boolean {
   return ["near", "nearby", "within", "around", "closest"].some((term) =>
     question.includes(term)
   );
+}
+
+function mentionsReachability(question: string): boolean {
+  return [
+    "walking distance",
+    "walkable",
+    "minute walk",
+    "minutes walk",
+    "minute drive",
+    "minutes drive",
+    "minute bike",
+    "minutes bike",
+    "travel time",
+    "reachable",
+    "isochrone",
+    "commute"
+  ].some((term) => question.includes(term));
 }
 
 function mentionsAggregate(question: string): boolean {

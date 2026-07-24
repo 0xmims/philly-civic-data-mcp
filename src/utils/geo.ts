@@ -71,6 +71,55 @@ export function pointFromRecord(record: Record<string, unknown>): Point | undefi
   return { latitude, longitude };
 }
 
+// Generous bounding box around Philadelphia city limits, used only for
+// "this looks like the wrong city" warnings — never to reject queries.
+export const PHILADELPHIA_BBOX = {
+  minLongitude: -75.3,
+  minLatitude: 39.85,
+  maxLongitude: -74.94,
+  maxLatitude: 40.15
+};
+
+export function isWithinPhiladelphiaBbox(point: Point): boolean {
+  return (
+    point.longitude >= PHILADELPHIA_BBOX.minLongitude &&
+    point.longitude <= PHILADELPHIA_BBOX.maxLongitude &&
+    point.latitude >= PHILADELPHIA_BBOX.minLatitude &&
+    point.latitude <= PHILADELPHIA_BBOX.maxLatitude
+  );
+}
+
+export function geometryIntersectsPhiladelphiaBbox(geometry: unknown): boolean {
+  if (!geometry || typeof geometry !== "object") {
+    return true;
+  }
+
+  const pairs = collectCoordinatePairs(
+    (geometry as Record<string, unknown>).coordinates
+  );
+  if (pairs.length === 0) {
+    return true;
+  }
+
+  let minLon = Infinity;
+  let maxLon = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  for (const [longitude, latitude] of pairs) {
+    minLon = Math.min(minLon, longitude);
+    maxLon = Math.max(maxLon, longitude);
+    minLat = Math.min(minLat, latitude);
+    maxLat = Math.max(maxLat, latitude);
+  }
+
+  return (
+    minLon <= PHILADELPHIA_BBOX.maxLongitude &&
+    maxLon >= PHILADELPHIA_BBOX.minLongitude &&
+    minLat <= PHILADELPHIA_BBOX.maxLatitude &&
+    maxLat >= PHILADELPHIA_BBOX.minLatitude
+  );
+}
+
 export function isPolygonLikeGeometry(geometry: unknown): boolean {
   if (!geometry || typeof geometry !== "object") {
     return false;

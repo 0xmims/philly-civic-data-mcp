@@ -41,6 +41,19 @@ const STATIC_GEOJSON_CAPABILITIES: ProviderCapabilities = {
   maxRecommendedLimit: 100
 };
 
+// CARTO tables whose the_geom column is entirely NULL: attribute queries and
+// aggregation work, but nearby/boundary/polygon queries would silently match nothing.
+const CARTO_NON_SPATIAL_CAPABILITIES: ProviderCapabilities = {
+  supportsSchema: true,
+  supportsQuery: true,
+  supportsNearby: false,
+  supportsGeoQuery: false,
+  supportsAggregation: true,
+  supportsBoundaryQuery: false,
+  geometryFormat: "none",
+  maxRecommendedLimit: 100
+};
+
 export const datasets: DatasetDefinition[] = [
   {
     id: "311_service_requests",
@@ -262,6 +275,191 @@ export const datasets: DatasetDefinition[] = [
     ],
     warnings: [
       "Vacancy is model-derived. Treat records as indicators, not legal determinations."
+    ]
+  },
+  {
+    id: "building_certifications",
+    title: "L&I Building Certifications",
+    description:
+      "Building safety certifications filed with Licenses and Inspections by licensed inspection companies: fire alarm, sprinkler, standpipe, facade, fire escape, and pier inspections.",
+    categories: ["Public Safety", "Real Estate / Land Records"],
+    tags: ["certifications", "fire safety", "facade", "sprinkler", "fire alarm", "L&I"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "building_certs",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/licenses-and-inspections-building-certifications/",
+      attribution: "City of Philadelphia, Department of Licenses and Inspections"
+    },
+    capabilities: CARTO_NON_SPATIAL_CAPABILITIES,
+    formats: ["CSV", "CARTO SQL API"],
+    endpointStatus: "verified",
+    knownFilters: [
+      "address",
+      "zip",
+      "buildingcertnumber",
+      "buildingcerttype",
+      "inspectionresult",
+      "inspectiondate",
+      "expirationdate",
+      "bin",
+      "council_district"
+    ],
+    defaultOrderBy: "expirationdate desc",
+    warnings: [
+      "Records have no geometry. For mapping or spatial questions, join to property_assessments or li_appeals by address, or use the bin field.",
+      "Certification and expiration status should be confirmed with L&I before treating it as a legal determination."
+    ]
+  },
+  {
+    id: "building_certification_summary",
+    title: "L&I Building Certifications Summary",
+    description:
+      "Per-structure summary of current certification status by system: fire alarm, standpipe, smoke control, pier, fire escape, private bridge, emergency standby power, and special hazards.",
+    categories: ["Public Safety", "Real Estate / Land Records"],
+    tags: ["certifications", "fire safety", "compliance", "L&I"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "building_cert_summary",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/licenses-and-inspections-building-certifications/",
+      attribution: "City of Philadelphia, Department of Licenses and Inspections"
+    },
+    capabilities: CARTO_NON_SPATIAL_CAPABILITIES,
+    formats: ["CSV", "CARTO SQL API"],
+    endpointStatus: "verified",
+    knownFilters: [
+      "structure_id",
+      "id_type",
+      "fire_alarm_status",
+      "standpipe_status",
+      "smoke_control_status",
+      "pier_status",
+      "fire_escape_status",
+      "private_bridge_status",
+      "emer_stdby_pwr_sys_status",
+      "special_hazards_status"
+    ],
+    warnings: [
+      "Records have no geometry. structure_id identifies the structure and id_type tells you which identifier system it uses; pick the join key accordingly.",
+      "Status fields summarize the detailed building_certifications records. Query that dataset for individual filings."
+    ]
+  },
+  {
+    id: "li_appeals",
+    title: "L&I Appeals (ZBA, LIRB, BBS)",
+    description:
+      "Appeals of code violations and permit refusals heard by the Zoning Board of Adjustment, L&I Review Board, and Board of Building Standards, including hearing decisions and provisos.",
+    categories: ["Planning / Zoning", "Real Estate / Land Records"],
+    tags: ["appeals", "ZBA", "zoning board", "variance", "L&I", "decisions"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "appeals",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/licenses-and-inspections-appeals-of-code-violations-and-permit-refusals/",
+      attribution: "City of Philadelphia, Department of Licenses and Inspections"
+    },
+    capabilities: CARTO_CAPABILITIES,
+    formats: ["CSV", "CARTO SQL API"],
+    endpointStatus: "verified",
+    knownFilters: [
+      "appealnumber",
+      "appealtype",
+      "appealstatus",
+      "appellanttype",
+      "primaryappellant",
+      "createddate",
+      "scheduleddate",
+      "decision",
+      "decisiondate",
+      "relatedpermit",
+      "address",
+      "zip",
+      "opa_account_num",
+      "council_district"
+    ],
+    defaultOrderBy: "createddate desc",
+    warnings: [
+      "Not every appeal record is geocoded. Spatial queries return only records with geometry."
+    ]
+  },
+  {
+    id: "real_estate_transfers",
+    title: "Real Estate Transfers (Recorder of Deeds)",
+    description:
+      "Property transfer documents recorded with the Department of Records, including deeds, mortgages, and related instruments with realty transfer tax details.",
+    categories: ["Real Estate / Land Records"],
+    tags: ["deeds", "transfers", "sales", "recorder of deeds", "mortgages"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "rtt_summary",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/real-estate-transfers/",
+      attribution: "City of Philadelphia, Department of Records"
+    },
+    capabilities: CARTO_CAPABILITIES,
+    formats: ["CSV", "CARTO SQL API"],
+    endpointStatus: "verified",
+    knownFilters: [
+      "document_id",
+      "document_type",
+      "display_date",
+      "recording_date",
+      "street_address",
+      "zip_code",
+      "ward",
+      "grantors",
+      "grantees",
+      "total_consideration",
+      "opa_account_num"
+    ],
+    defaultOrderBy: "display_date desc",
+    warnings: [
+      "Very large dataset (5M+ documents). Always filter by date range, document_type, address, or ZIP.",
+      "Includes many document types beyond sales (mortgages, satisfactions). Filter document_type = 'DEED' for sales analysis, and note that nominal-consideration transfers ($1 deeds) are common."
+    ]
+  },
+  {
+    id: "registered_historic_properties",
+    title: "Philadelphia Registered Historic Properties",
+    description:
+      "Properties and district parcels listed on the Philadelphia Register of Historic Places, maintained by the Philadelphia Historical Commission.",
+    categories: ["Arts / Culture / History", "Planning / Zoning", "Real Estate / Land Records"],
+    tags: ["historic", "preservation", "historical commission", "register"],
+    provider: {
+      kind: "carto",
+      baseUrl: CARTO_BASE_URL,
+      table: "historic_sites_philreg",
+      geometryColumn: "the_geom"
+    },
+    source: {
+      name: "OpenDataPhilly",
+      url: "https://opendataphilly.org/datasets/philadelphia-registered-historic-properties/",
+      attribution: "City of Philadelphia, Philadelphia City Planning Commission"
+    },
+    capabilities: CARTO_CAPABILITIES,
+    formats: ["CSV", "GeoJSON", "SHP", "CARTO SQL API"],
+    updateFrequency: "Catalog copy last updated July 2017",
+    endpointStatus: "verified",
+    knownFilters: ["loc", "district"],
+    warnings: [
+      "The catalog copy of this layer was last updated in 2017. Confirm current designation status with the Philadelphia Historical Commission (215-686-7660) before relying on it."
     ]
   },
   {

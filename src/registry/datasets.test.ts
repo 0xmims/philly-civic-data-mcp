@@ -34,4 +34,30 @@ describe("dataset registry", () => {
     expect(results[0]?.dataset_id).toBe("311_service_requests");
     expect(results[0]?.source.url).toContain("opendataphilly.org");
   });
+
+  it("includes the certification, appeals, transfer, and historic datasets", () => {
+    const ids = new Set(datasets.map((dataset) => dataset.id));
+
+    for (const id of [
+      "building_certifications",
+      "building_certification_summary",
+      "li_appeals",
+      "real_estate_transfers",
+      "registered_historic_properties"
+    ]) {
+      expect(ids.has(id)).toBe(true);
+    }
+  });
+
+  it("marks non-spatial CARTO tables as unsupported for spatial queries", () => {
+    for (const id of ["building_certifications", "building_certification_summary"]) {
+      const dataset = datasets.find((candidate) => candidate.id === id);
+      expect(dataset?.capabilities.supportsNearby).toBe(false);
+      expect(dataset?.capabilities.supportsBoundaryQuery).toBe(false);
+      expect(dataset?.capabilities.geometryFormat).toBe("none");
+      expect(
+        dataset?.warnings?.some((warning) => warning.includes("no geometry"))
+      ).toBe(true);
+    }
+  });
 });

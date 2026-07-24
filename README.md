@@ -17,6 +17,8 @@ The server can:
 - Fetch common civic boundaries.
 - Aggregate supported datasets by count, count distinct, group fields, and date buckets.
 - Query supported spatial datasets inside a known civic boundary.
+- Compute travel-time isochrones (walk, bike, drive) from OpenStreetMap-based routing engines.
+- Query supported spatial datasets inside an arbitrary GeoJSON polygon, such as an isochrone.
 - Suggest datasets, joins, caveats, and follow-up tool calls for natural-language civic questions.
 
 Every query-style tool returns source attribution, warnings, and `retrieved_at`. The server enforces safe limits and avoids silent incomplete-data responses.
@@ -236,6 +238,40 @@ CARTO aggregation uses validated SQL identifiers and safe literals. Static GeoJS
 
 The tool resolves the boundary first, then uses provider-specific spatial filtering when supported. CARTO uses PostGIS `ST_Intersects`. ArcGIS uses polygon spatial queries. Static GeoJSON uses point or centroid-in-polygon fallback with a warning.
 
+### `get_isochrone`
+
+```json
+{
+  "latitude": 39.9526,
+  "longitude": -75.1652,
+  "mode": "walk",
+  "minutes": 15
+}
+```
+
+Returns the area reachable from the origin within the travel-time budget as a GeoJSON polygon, with provider attribution and warnings. Modes are `walk`, `bike`, and `drive` (drive times are not traffic-aware). The polygon feeds directly into `query_within_polygon`.
+
+Isochrones are computed by OpenStreetMap-based routing engines, keeping results free to store, join, and display on any map:
+
+- Default: the public FOSSGIS Valhalla instance (keyless, fair-use demo capacity).
+- `PHILLY_MCP_VALHALLA_URL`: point at a self-hosted Valhalla for production use.
+- `PHILLY_MCP_ORS_API_KEY`: use OpenRouteService instead (free key from openrouteservice.org; caps travel time at 60 minutes).
+- `PHILLY_MCP_ISOCHRONE_PROVIDER`: force `valhalla` or `ors` when both are configured.
+
+### `query_within_polygon`
+
+```json
+{
+  "dataset_id": "li_appeals",
+  "polygon": { "type": "Polygon", "coordinates": [[[-75.18, 39.94], [-75.15, 39.94], [-75.15, 39.97], [-75.18, 39.97], [-75.18, 39.94]]] },
+  "filters": { "appealtype": { "like": "%variance%" } },
+  "fields": ["appealnumber", "appealtype", "address", "createddate", "decision"],
+  "limit": 25
+}
+```
+
+Like `query_within_boundary`, but for an arbitrary GeoJSON Polygon or MultiPolygon — typically an isochrone from `get_isochrone` or a custom study area. Non-spatial datasets (such as the building certification tables) reject polygon queries explicitly instead of returning silently empty results.
+
 ### `civic_question_helper`
 
 ```json
@@ -256,6 +292,11 @@ Returns suggested datasets, likely joins, caveats, and recommended follow-up MCP
 | `li_violations` | CARTO | L&I code violations |
 | `building_demolitions` | CARTO | Building demolitions |
 | `vacant_property_indicators_points` | ArcGIS | Vacant property indicators |
+| `building_certifications` | CARTO | L&I building certifications (no geometry; join by address or `bin`) |
+| `building_certification_summary` | CARTO | Per-structure certification status summary (no geometry) |
+| `li_appeals` | CARTO | L&I appeals incl. ZBA, LIRB, and BBS decisions |
+| `real_estate_transfers` | CARTO | Recorder of Deeds transfer documents (RTT summary) |
+| `registered_historic_properties` | CARTO | Philadelphia Register of Historic Places (catalog copy last updated 2017) |
 | `neighborhood_boundaries` | Static GeoJSON | Philadelphia neighborhoods |
 | `council_districts_2024` | ArcGIS | City Council districts |
 | `zip_code_boundaries` | ArcGIS | ZIP Code polygons |

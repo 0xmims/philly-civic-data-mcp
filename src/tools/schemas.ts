@@ -134,6 +134,41 @@ export const queryWithinBoundarySchema = z
     }
   );
 
+const positionSchema = z.array(z.number()).min(2);
+const ringSchema = z.array(positionSchema).min(4);
+
+export const polygonGeometrySchema = z.union([
+  z.object({
+    type: z.literal("Polygon"),
+    coordinates: z.array(ringSchema).min(1)
+  }),
+  z.object({
+    type: z.literal("MultiPolygon"),
+    coordinates: z.array(z.array(ringSchema).min(1)).min(1)
+  })
+]);
+
+export const queryWithinPolygonShape = {
+  dataset_id: z.string(),
+  polygon: polygonGeometrySchema.describe(
+    "GeoJSON Polygon or MultiPolygon geometry in WGS84 lon/lat, e.g. from get_isochrone or get_boundary."
+  ),
+  filters: filtersSchema.default({}),
+  fields: z.array(identifierSchema).optional(),
+  limit: z.number().int().positive().default(DEFAULT_LIMIT),
+  offset: z.number().int().min(0).default(0),
+  order_by: z.string().optional()
+};
+
+export const queryWithinPolygonSchema = z.object(queryWithinPolygonShape);
+
+export const getIsochroneSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  mode: z.enum(["walk", "bike", "drive"]).default("walk"),
+  minutes: z.number().int().min(1).max(120).default(15)
+});
+
 export const civicQuestionHelperSchema = z.object({
   question: z.string().min(3)
 });
@@ -145,4 +180,6 @@ export type QueryNearbyInput = z.infer<typeof queryNearbySchema>;
 export type AggregateDatasetInput = z.infer<typeof aggregateDatasetSchema>;
 export type GetBoundaryInput = z.infer<typeof getBoundarySchema>;
 export type QueryWithinBoundaryInput = z.infer<typeof queryWithinBoundarySchema>;
+export type QueryWithinPolygonInput = z.infer<typeof queryWithinPolygonSchema>;
+export type GetIsochroneInput = z.infer<typeof getIsochroneSchema>;
 export type CivicQuestionHelperInput = z.infer<typeof civicQuestionHelperSchema>;

@@ -203,7 +203,7 @@ export interface AggregateResult {
 
 export interface QueryWithinBoundaryOptions extends QueryOptions {
   boundary: {
-    boundary_type: BoundaryType;
+    boundary_type: BoundaryType | "custom_polygon";
     dataset_id: string;
     matched_by: string;
     record: Record<string, unknown>;

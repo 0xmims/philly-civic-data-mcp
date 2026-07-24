@@ -5,6 +5,9 @@ import { REQUEST_TIMEOUT_MS, RETRY_ATTEMPTS } from "./limits.js";
 export interface JsonFetchOptions {
   timeoutMs?: number;
   attempts?: number;
+  method?: "GET" | "POST";
+  headers?: Record<string, string>;
+  body?: string;
 }
 
 export async function fetchJson<T>(
@@ -25,9 +28,12 @@ export async function fetchJson<T>(
     try {
       const response = await fetch(url, {
         signal: controller.signal,
+        method: options.method ?? "GET",
+        body: options.body,
         headers: {
           accept: "application/json",
-          "user-agent": "philly-civic-data-mcp/0.1"
+          "user-agent": "philly-civic-data-mcp/0.1",
+          ...options.headers
         }
       });
 
